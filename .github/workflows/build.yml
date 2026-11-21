@@ -1,0 +1,59 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Project zip kholein
+        run: |
+          ZIP=$(ls project*.zip 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$ZIP" ]; then
+            echo "Using $ZIP"
+            mkdir -p _proj && unzip -q -o "$ZIP" -d _proj
+            DIR=$(dirname "$(find _proj -name settings.gradle.kts | head -n 1)")
+          else
+            DIR=.
+          fi
+          echo "PROJECT_DIR=$DIR" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build debug APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: APK ka naam theek karein
+        run: |
+          APK=$(find "$PROJECT_DIR" -name "*-debug.apk" | head -n 1)
+          cp "$APK" SmartAppLock-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SmartAppLock-debug-apk
+          path: SmartAppLock-debug.apk
+
+      - name: Release banayein
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Smart App Lock build ${{ github.run_number }}
+          files: SmartAppLock-debug.apk
