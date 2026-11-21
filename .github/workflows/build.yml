@@ -31,8 +31,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses:       - name: Android SDK licenses
+      - name: Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
